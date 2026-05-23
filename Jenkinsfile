@@ -2,11 +2,12 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_REGISTRY = "docker.io"
-        DOCKER_USERNAME = "sooribabu7674"
-        DOCKER_IMAGE = "sooribabu7674/sample-app"
-        DOCKER_TAG = "latest"
         AWS_REGION = "us-east-1"
+        AWS_ACCOUNT_ID = credentials('aws-account-id')
+        ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        ECR_REPO_NAME = "sample-app"
+        DOCKER_IMAGE = "${ECR_REGISTRY}/${ECR_REPO_NAME}"
+        DOCKER_TAG = "latest"
         EKS_CLUSTER_NAME = "main-eks-cluster"
         HELM_RELEASE_NAME = "sample-app"
         HELM_CHART_PATH = "./helm/sample-app"
@@ -46,12 +47,12 @@ pipeline {
             }
         }
         
-        stage('Docker Login') {
+        stage('Docker Login to ECR') {
             steps {
-                echo "Logging into Docker Hub..."
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                echo "Logging into AWS ECR..."
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
                     sh '''
-                        echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
+                        aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
                     '''
                 }
             }
@@ -69,11 +70,12 @@ pipeline {
             }
         }
         
-        stage('Push to Docker Hub') {
+        stage('Push to ECR') {
             steps {
-                echo "Pushing Docker image to Docker Hub..."
+                echo "Pushing Docker image to AWS ECR..."
                 sh '''
                     docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
+                    echo "Image pushed: ${DOCKER_IMAGE}:${DOCKER_TAG}"
                 '''
             }
         }
