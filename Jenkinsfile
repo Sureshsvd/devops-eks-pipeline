@@ -3,10 +3,7 @@ pipeline {
     
     environment {
         AWS_REGION = "us-east-1"
-        AWS_ACCOUNT_ID = credentials('aws-account-id')
-        ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         ECR_REPO_NAME = "sample-app"
-        DOCKER_IMAGE = "${ECR_REGISTRY}/${ECR_REPO_NAME}"
         DOCKER_TAG = "latest"
         EKS_CLUSTER_NAME = "main-eks-cluster"
         HELM_RELEASE_NAME = "sample-app"
@@ -50,8 +47,12 @@ pipeline {
         stage('Docker Login to ECR') {
             steps {
                 echo "Logging into AWS ECR..."
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
+                withCredentials([
+                    string(credentialsId: 'aws-account-id', variable: 'AWS_ACCOUNT_ID'),
+                    [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']
+                ]) {
                     sh '''
+                        ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
                         aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
                     '''
                 }
@@ -61,11 +62,14 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo "Building Docker image..."
-                dir("${APP_DIR}") {
-                    sh '''
-                        docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
-                        docker image ls | grep sample-app
-                    '''
+                withCredentials([string(credentialsId: 'aws-account-id', variable: 'AWS_ACCOUNT_ID')]) {
+                    dir("${APP_DIR}") {
+                        sh '''
+                            ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                            docker build -t ${ECR_REGISTRY}/${ECR_REPO_NAME}:${DOCKER_TAG} .
+                            docker image ls | grep sample-app
+                        '''
+                    }
                 }
             }
         }
@@ -73,10 +77,13 @@ pipeline {
         stage('Push to ECR') {
             steps {
                 echo "Pushing Docker image to AWS ECR..."
-                sh '''
-                    docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
-                    echo "Image pushed: ${DOCKER_IMAGE}:${DOCKER_TAG}"
-                '''
+                withCredentials([string(credentialsId: 'aws-account-id', variable: 'AWS_ACCOUNT_ID')]) {
+                    sh '''
+                        ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                        docker push ${ECR_REGISTRY}/${ECR_REPO_NAME}:${DOCKER_TAG}
+                        echo "Image pushed: ${ECR_REGISTRY}/${ECR_REPO_NAME}:${DOCKER_TAG}"
+                    '''
+                }
             }
         }
         
@@ -95,13 +102,18 @@ pipeline {
         stage('Deploy with Helm') {
             steps {
                 echo "Deploying application with Helm..."
-                sh '''
-                    helm repo update
-                    helm upgrade --install ${HELM_RELEASE_NAME} ${HELM_CHART_PATH} \
-                        --values ${HELM_CHART_PATH}/values.yaml \
-                        --wait \
-                        --timeout 5m
-                '''
+                withCredentials([string(credentialsId: 'aws-account-id', variable: 'AWS_ACCOUNT_ID')]) {
+                    sh '''
+                        ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                        helm repo update
+                        helm upgrade --install ${HELM_RELEASE_NAME} ${HELM_CHART_PATH} \
+                            --values ${HELM_CHART_PATH}/values.yaml \
+                            --set image.repository=${ECR_REGISTRY}/${ECR_REPO_NAME} \
+                            --set image.tag=${DOCKER_TAG} \
+                            --wait \
+                            --timeout 5m
+                    '''
+                }
             }
         }
         
