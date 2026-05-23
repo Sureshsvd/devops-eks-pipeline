@@ -1,0 +1,25 @@
+# Bytecode, OS files
+__pycache__/
+*.pyc
+*.pyo
+
+# Terraform local state and providers
+.terraform/
+terraform.tfstate
+terraform.tfstate.*
+
+# Ignore local binaries and archives
+*.exe
+*.zip
+*.tar.gz
+*.tgz
+
+# Helm local build artifacts
+helm/helm-canary-windows-amd64/
+
+# Docker
+Dockerfile
+
+# IDEs
+.vscode/
+.idea/
