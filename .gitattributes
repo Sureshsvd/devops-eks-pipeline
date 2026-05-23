@@ -1,0 +1,2 @@
+*.exe filter=lfs diff=lfs merge=lfs -text
+main.tf/.terraform/** filter=lfs diff=lfs merge=lfs -text

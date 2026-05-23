@@ -1,0 +1,24 @@
+replicaCount: 1
+
+image:
+  repository: sooribabu7674/sample-app
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 5000
+
+ingress:
+  enabled: true
+  host: sample-app.example.com
+  className: nginx
+
+app:
+  message: "Hello from EKS Helm app"
+
+config:
+  filename: app-config.txt
+  content: |
+    This is configuration from ConfigMap
