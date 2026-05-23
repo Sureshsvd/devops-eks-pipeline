@@ -25,8 +25,8 @@ pipeline {
                 echo "Running Terraform plan..."
                 dir("${TERRAFORM_DIR}") {
                     sh '''
-                        terraform init
-                        terraform plan -out=tfplan
+                        terraform init -input=false
+                        terraform plan -out=tfplan -input=false
                     '''
                 }
             }
@@ -37,7 +37,7 @@ pipeline {
                 echo "Applying Terraform configuration..."
                 dir("${TERRAFORM_DIR}") {
                     sh '''
-                        terraform apply -auto-approve tfplan
+                        terraform apply -input=false -auto-approve tfplan
                         terraform output
                     '''
                 }
