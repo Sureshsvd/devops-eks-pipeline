@@ -27,7 +27,7 @@ pipeline {
                 echo 'Running Terraform plan...'
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: AWS_CREDENTIALS_ID]]) {
                     dir(TERRAFORM_DIR) {
-                        timeout(time: 30, unit: 'MINUTES') {
+                        timeout(time: 60, unit: 'MINUTES') {
                             sh '''
                                 set -x
                                 echo "AWS Region: ${AWS_REGION}"
