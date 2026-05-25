@@ -4,7 +4,7 @@ pipeline {
     environment {
         AWS_REGION = 'us-east-1'
         AWS_ACCOUNT_ID = '938064475800'
-        AWS_CREDENTIALS_ID = 'awsid'
+        AWS_CREDENTIALS_ID = 'aws-credentials'
         ECR_REPO_NAME = 'sample-app'
         DOCKER_TAG = 'latest'
         EKS_CLUSTER_NAME = 'main-eks-cluster'
