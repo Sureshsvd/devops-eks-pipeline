@@ -103,9 +103,9 @@ pipeline {
                 echo 'Configuring kubectl for EKS cluster...'
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: AWS_CREDENTIALS_ID]]) {
                     sh '''
-                        export KUBECONFIG=$WORKSPACE/.kube/config
+                        export KUBECONFIG="$WORKSPACE/.kube/config"
                         mkdir -p "$(dirname "$KUBECONFIG")"
-                        aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER_NAME} --kubeconfig ${KUBECONFIG}
+                        aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER_NAME} --kubeconfig "$KUBECONFIG"
                         kubectl config current-context
                     '''
                 }
