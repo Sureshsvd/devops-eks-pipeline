@@ -27,7 +27,7 @@ pipeline {
                 echo 'Running Terraform plan...'
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: AWS_CREDENTIALS_ID]]) {
                     dir(TERRAFORM_DIR) {
-                        timeout(time: 60, unit: 'MINUTES') {
+                        timeout(time: 20, unit: 'MINUTES') {
                             sh '''
                                 set -x
                                 echo "AWS Region: ${AWS_REGION}"
@@ -46,10 +46,17 @@ pipeline {
                 echo 'Applying Terraform configuration...'
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: AWS_CREDENTIALS_ID]]) {
                     dir(TERRAFORM_DIR) {
-                        timeout(time: 60, unit: 'MINUTES') {
+                        timeout(time: 10, unit: 'MINUTES') {
                             sh '''
                                 set -x
-                                terraform apply -input=false -auto-approve -lock=false tfplan
+                                # Only apply if there are actual resource changes (not just output changes)
+                                CHANGES=$(grep -c "^[[:space:]]*#" tfplan || true)
+                                if [ "$CHANGES" -gt 0 ]; then
+                                    echo "Infrastructure changes detected, applying..."
+                                    terraform apply -input=false -auto-approve -lock=false tfplan
+                                else
+                                    echo "No infrastructure changes needed, skipping apply"
+                                fi
                                 terraform output
                             '''
                         }
